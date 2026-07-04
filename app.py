@@ -1,10 +1,3 @@
-"""
-Survey Maps - Interactive Mining Cadastre Viewer
-=================================================
-Modern UI/UX with multiple LOT/L0T shapefile loading.
-No emojis – clean, professional design.
-"""
-
 import os
 from pathlib import Path
 
