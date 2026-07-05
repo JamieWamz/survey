@@ -9,7 +9,9 @@ import hashlib
 import io
 import json
 import sqlite3
+import tempfile
 import zipfile
+from datetime import datetime
 from pathlib import Path
 from typing import Any, Dict, List, Optional, Tuple
 
@@ -67,6 +69,7 @@ def init_database() -> None:
                 username TEXT UNIQUE NOT NULL,
                 password_hash TEXT NOT NULL,
                 role TEXT NOT NULL DEFAULT 'viewer',
+                last_login TIMESTAMP,
                 created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
             )
             """
@@ -112,6 +115,19 @@ def authenticate_user(username: str, password: str) -> Optional[Dict[str, Any]]:
         conn.close()
 
 
+def update_last_login(user_id: int) -> None:
+    """Update the last_login timestamp for the given user."""
+    conn = get_db_connection()
+    try:
+        conn.execute(
+            "UPDATE users SET last_login = ? WHERE id = ?",
+            (datetime.utcnow().isoformat(), user_id),
+        )
+        conn.commit()
+    finally:
+        conn.close()
+
+
 # ---------------------------------------------------------------------------
 # Shapefile Loader
 # ---------------------------------------------------------------------------
@@ -123,7 +139,16 @@ def load_shapefiles(
 ) -> Tuple[Optional[gpd.GeoDataFrame], List[str], Optional[str]]:
     """
     Load all shapefiles from subdirectories under base_path.
-    Returns (combined_gdf, lot_names_list, error_message).
+
+    Parameters
+    ----------
+    base_path : Path
+        Directory containing LOT subdirectories with .shp files.
+
+    Returns
+    -------
+    Tuple[Optional[gpd.GeoDataFrame], List[str], Optional[str]]
+        (combined_gdf, lot_names_list, error_message).
     """
     if not base_path.exists():
         return None, [], f"Shapefile directory not found: {base_path}"
@@ -281,6 +306,47 @@ def create_map(gdf: gpd.GeoDataFrame) -> folium.Map:
 
     m = folium.Map(location=list(center), zoom_start=zoom, tiles="OpenStreetMap")
 
+    # Add fullscreen control
+    try:
+        from branca.element import MacroElement
+        from jinja2 import Template
+
+        fullscreen_script = """
+        <script>
+        function toggleFullscreen() {
+            var map = document.querySelector('.folium-map');
+            if (!document.fullscreenElement) {
+                if (map.requestFullscreen) {
+                    map.requestFullscreen();
+                } else if (map.webkitRequestFullscreen) {
+                    map.webkitRequestFullscreen();
+                } else if (map.msRequestFullscreen) {
+                    map.msRequestFullscreen();
+                }
+            } else {
+                if (document.exitFullscreen) {
+                    document.exitFullscreen();
+                } else if (document.webkitExitFullscreen) {
+                    document.webkitExitFullscreen();
+                } else if (document.msExitFullscreen) {
+                    document.msExitFullscreen();
+                }
+            }
+        }
+        </script>
+        <div style="position: absolute; top: 10px; right: 10px; z-index: 1000;">
+            <button onclick="toggleFullscreen()"
+                    style="background: white; border: 2px solid rgba(0,0,0,0.2);
+                           border-radius: 4px; padding: 6px 10px; cursor: pointer;
+                           font-size: 14px; font-weight: bold;">
+                &#x26F6;
+            </button>
+        </div>
+        """
+        m.get_root().html.add_child(folium.Element(fullscreen_script))
+    except Exception:
+        pass
+
     # Determine which fields are available for tooltips
     tooltip_fields = ["parcel_number", "LOT_NAME", "owner_name", "land_use", "status"]
     available_fields = [f for f in tooltip_fields if f in gdf.columns]
@@ -344,7 +410,18 @@ def create_map(gdf: gpd.GeoDataFrame) -> folium.Map:
 def export_to_kml(gdf: gpd.GeoDataFrame, layer_name: str) -> bytes:
     """
     Export a GeoDataFrame to KML format (WGS84).
-    Returns KML content as bytes.
+
+    Parameters
+    ----------
+    gdf : gpd.GeoDataFrame
+        The parcel data to export.
+    layer_name : str
+        Name for the KML layer.
+
+    Returns
+    -------
+    bytes
+        KML content as bytes.
     """
     # Ensure WGS84
     if gdf.crs is None:
@@ -391,16 +468,28 @@ def export_to_kml(gdf: gpd.GeoDataFrame, layer_name: str) -> bytes:
         except Exception:
             continue
 
-    buf = io.BytesIO()
-    kml.save(buf)
-    buf.seek(0)
-    return buf.getvalue()
+    # Save to a temporary file, then read back as bytes
+    with tempfile.NamedTemporaryFile(suffix=".kml", delete=True) as tmp:
+        kml.save(tmp.name)
+        tmp.seek(0)
+        return tmp.read()
 
 
 def export_to_kmz(gdf: gpd.GeoDataFrame, layer_name: str) -> bytes:
     """
     Export a GeoDataFrame to KMZ (compressed KML).
-    Returns KMZ content as bytes.
+
+    Parameters
+    ----------
+    gdf : gpd.GeoDataFrame
+        The parcel data to export.
+    layer_name : str
+        Name for the KML layer.
+
+    Returns
+    -------
+    bytes
+        KMZ content as bytes.
     """
     kml_bytes = export_to_kml(gdf, layer_name)
     kmz_buf = io.BytesIO()
@@ -516,17 +605,17 @@ def dashboard_page(gdf: gpd.GeoDataFrame) -> None:
         fig.update_layout(xaxis_title="Area (ha)", yaxis_title="Number of Parcels")
         st.plotly_chart(fig, use_container_width=True)
 
-    # Top lots by parcel count
+    # Top 10 lots by parcel count
     if "LOT_NAME" in gdf.columns:
-        st.markdown("### Lots by Parcel Count")
-        lot_counts = gdf["LOT_NAME"].value_counts().head(15).reset_index()
+        st.markdown("### Top 10 Lots by Parcel Count")
+        lot_counts = gdf["LOT_NAME"].value_counts().head(10).reset_index()
         lot_counts.columns = ["LOT_NAME", "count"]
         fig = px.bar(
             lot_counts,
             x="count",
             y="LOT_NAME",
             orientation="h",
-            title="Top 15 Lots by Number of Parcels",
+            title="Top 10 Lots by Number of Parcels",
             color="count",
             color_continuous_scale="Blues",
             text_auto=True,
@@ -625,6 +714,28 @@ def search_page(gdf: gpd.GeoDataFrame) -> None:
     else:
         search_status = "All"
 
+    # Area range filter
+    st.markdown("### Area Range Filter (hectares)")
+    area_col1, area_col2 = st.columns(2)
+    with area_col1:
+        min_area = st.number_input(
+            "Min Area (ha)",
+            min_value=0.0,
+            max_value=float(gdf["area_hectares"].max()) if "area_hectares" in gdf.columns else 10000.0,
+            value=0.0,
+            step=0.1,
+            format="%.2f",
+        )
+    with area_col2:
+        max_area = st.number_input(
+            "Max Area (ha)",
+            min_value=0.0,
+            max_value=float(gdf["area_hectares"].max()) if "area_hectares" in gdf.columns else 10000.0,
+            value=float(gdf["area_hectares"].max()) if "area_hectares" in gdf.columns else 10000.0,
+            step=0.1,
+            format="%.2f",
+        )
+
     search_clicked = st.button("Search", type="primary")
 
     if search_clicked:
@@ -654,6 +765,13 @@ def search_page(gdf: gpd.GeoDataFrame) -> None:
 
         if search_status != "All" and "status" in result.columns:
             result = result[result["status"] == search_status]
+
+        # Apply area range filter
+        if "area_hectares" in result.columns:
+            result = result[
+                (result["area_hectares"] >= min_area)
+                & (result["area_hectares"] <= max_area)
+            ]
 
         # Store in session state
         st.session_state.search_results = result
@@ -892,6 +1010,7 @@ def main() -> None:
                         user = authenticate_user(username.strip(), password)
                         if user:
                             st.session_state.user = user
+                            update_last_login(user["id"])
                             st.success(f"Welcome, {user['username']}!")
                             st.rerun()
                         else:
@@ -955,4 +1074,3 @@ def main() -> None:
 
 if __name__ == "__main__":
     main()
-
