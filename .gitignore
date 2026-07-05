@@ -27,3 +27,6 @@ Thumbs.db
 *.kmz
 *.geojson
 *.csv
+
+# Skills config (local only)
+.cline-skills.md

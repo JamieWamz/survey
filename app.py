@@ -11,7 +11,7 @@ import json
 import sqlite3
 import tempfile
 import zipfile
-from datetime import datetime
+from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any, Dict, List, Optional, Tuple
 
@@ -121,7 +121,7 @@ def update_last_login(user_id: int) -> None:
     try:
         conn.execute(
             "UPDATE users SET last_login = ? WHERE id = ?",
-            (datetime.utcnow().isoformat(), user_id),
+            (datetime.now(timezone.utc).isoformat(), user_id),
         )
         conn.commit()
     finally:
