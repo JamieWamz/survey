@@ -25,6 +25,9 @@ def render(db, parcels):
     output_dir = Path('exports')
     output_dir.mkdir(exist_ok=True)
 
+    if 'export_path' not in st.session_state:
+        st.session_state.export_path = None
+
     if st.button('Export'):
         if format_option == 'GeoJSON':
             path = output_dir / 'yengwe_parcels.geojson'
@@ -42,9 +45,30 @@ def render(db, parcels):
             path = output_dir / 'yengwe_parcels.zip'
             export_to_shapefile(source, path)
 
+        st.session_state.export_path = str(path)
         st.success(f'Export generated: {path.name}')
-        with open(path, 'rb') as f:
-            st.download_button('Download file', f.read(), path.name)
+
+    export_path = st.session_state.get('export_path')
+    if export_path:
+        path = Path(export_path)
+        if path.exists():
+            mime_types = {
+                '.geojson': 'application/geo+json',
+                '.csv': 'text/csv',
+                '.kml': 'application/vnd.google-earth.kml+xml',
+                '.kmz': 'application/vnd.google-earth.kmz',
+                '.zip': 'application/zip',
+            }
+            mime_type = mime_types.get(path.suffix.lower(), 'application/octet-stream')
+            st.download_button(
+                'Download file',
+                data=path.read_bytes(),
+                file_name=path.name,
+                mime=mime_type,
+                key='export-download',
+            )
+        else:
+            st.info('The export file is not available yet.')
 
     st.markdown('### Export tips')
     st.write('- Use GeoJSON for GIS interoperability.')
