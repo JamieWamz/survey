@@ -1,10 +1,10 @@
 from typing import Dict, Optional, Tuple
 
 import folium
-import geopandas as gpd
 from folium import Map
 from folium.features import GeoJson
 from shapely.geometry import mapping
+from .geo_compat import gpd
 
 LAYER_COLORS = {
     'default': '#3388ff',

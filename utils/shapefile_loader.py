@@ -1,7 +1,7 @@
 from pathlib import Path
 from typing import Callable, Optional
 
-import geopandas as gpd
+from .geo_compat import gpd
 import pandas as pd
 
 
@@ -24,9 +24,13 @@ def load_shapefiles(root_dir: Path, progress_callback: Optional[Callable[[int, i
         gdf['LOT_NAME'] = shp_path.parent.name
         gdf['SOURCE_FILE'] = shp_path.name
         gdf['area_hectares'] = gdf.geometry.area / 10000
-        frames.append(gdf)
+        # ensure we append plain DataFrame for reliable concatenation
+        if hasattr(gdf, '_df'):
+            frames.append(gdf._df)
+        else:
+            frames.append(gdf)
 
-    combined = gpd.GeoDataFrame(pd.concat(frames, ignore_index=True), crs='EPSG:4326')
+    combined = gpd.GeoDataFrame(pd.concat(frames, ignore_index=True), geometry='geometry', crs='EPSG:4326')
     if 'parcel_number' not in combined.columns:
         combined['parcel_number'] = combined.get('ParcelID')
     return combined

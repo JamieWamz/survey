@@ -3,7 +3,7 @@ import zipfile
 from pathlib import Path
 from typing import Dict
 
-import geopandas as gpd
+from .geo_compat import gpd
 import pandas as pd
 import simplekml
 
@@ -60,6 +60,7 @@ def export_to_geojson(gdf: gpd.GeoDataFrame, output_path: Path):
     else:
         gdf = gdf.to_crs('EPSG:4326')
     output_path.parent.mkdir(parents=True, exist_ok=True)
+    # use compatibility shim which will write GeoJSON when geopandas isn't installed
     gdf.to_file(output_path, driver='GeoJSON')
 
 
@@ -76,7 +77,9 @@ def export_to_shapefile(gdf: gpd.GeoDataFrame, output_path: Path):
     temp_dir.mkdir(parents=True, exist_ok=True)
     if gdf.crs is None:
         gdf = gdf.set_crs('EPSG:4326')
-    gdf.to_file(temp_dir / 'parcels.shp', driver='ESRI Shapefile')
+    # The shim will fall back to writing GeoJSON when Shapefile driver isn't available
+    shp_target = temp_dir / 'parcels.shp'
+    gdf.to_file(shp_target, driver='ESRI Shapefile')
     with zipfile.ZipFile(output_path, 'w', zipfile.ZIP_DEFLATED) as zf:
         for shp_file in temp_dir.glob('*'):
             zf.write(shp_file, arcname=shp_file.name)

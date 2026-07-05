@@ -4,7 +4,7 @@ import sqlite3
 from pathlib import Path
 from typing import Any, Dict, Optional
 
-import geopandas as gpd
+from utils.geo_compat import gpd
 from shapely.geometry import mapping, shape
 from sqlalchemy import create_engine, text
 from sqlalchemy.engine import Engine
