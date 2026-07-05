@@ -22,6 +22,8 @@ import pandas as pd
 import plotly.express as px
 import simplekml
 import streamlit as st
+import geopandas as gpd
+gpd.options.io_engine = "pyogrio"
 from streamlit_folium import st_folium
 from streamlit_option_menu import option_menu
 
