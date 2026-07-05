@@ -16,14 +16,14 @@ from pathlib import Path
 from typing import Any, Dict, List, Optional, Tuple
 
 import folium
+from folium.features import GeoJson
 import geopandas as gpd
 import pandas as pd
 import plotly.express as px
-import streamlit as st
 import simplekml
-from folium.features import GeoJson
-from streamlit_option_menu import option_menu
+import streamlit as st
 from streamlit_folium import st_folium
+from streamlit_option_menu import option_menu
 
 # ---------------------------------------------------------------------------
 # Constants
