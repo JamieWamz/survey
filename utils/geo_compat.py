@@ -40,6 +40,15 @@ class GeoDataFrame:
     def empty(self):
         return self._df.empty
 
+    def __getitem__(self, key):
+        return self._df[key]
+
+    def __setitem__(self, key, value):
+        self._df[key] = value
+
+    def __len__(self):
+        return len(self._df)
+
     def iterrows(self):
         return self._df.iterrows()
 
