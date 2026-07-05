@@ -1,5 +1,6 @@
 import hashlib
 import json
+import sqlite3
 from pathlib import Path
 from typing import Any, Dict, Optional
 
@@ -33,8 +34,18 @@ class DatabaseManager:
         schema_file = self.base_dir / 'database' / 'schema.sql'
         with open(schema_file, 'r', encoding='utf-8') as fp:
             sql = fp.read()
-        with self.engine.begin() as conn:
-            conn.execute(text(sql))
+
+        db_path = self.engine.url.database
+        if not db_path or db_path == ':memory:':
+            db_path = self.base_dir / 'yengwe.db'
+        else:
+            db_path = Path(db_path)
+            if not db_path.is_absolute():
+                db_path = self.base_dir / db_path
+
+        db_path.parent.mkdir(parents=True, exist_ok=True)
+        with sqlite3.connect(str(db_path)) as conn:
+            conn.executescript(sql)
 
     def _initialize_postgres(self):
         create_sql = '''

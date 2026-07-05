@@ -9,8 +9,12 @@ __pycache__/
 .env.local
 .env.*.local
 venv/
+.venv/
+.streamlit/*
+!.streamlit/config.toml
 .idea/
 .vscode/
 .DS_Store
 *.log
 exports/
+deploy.md
