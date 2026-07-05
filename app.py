@@ -159,8 +159,12 @@ def load_shapefiles(
             gdf["LOT_NAME"] = lot_name
             gdf["SOURCE_FILE"] = shp_path.name
 
-            # Calculate area in hectares from geometry
-            gdf["area_hectares"] = gdf.geometry.area / 10000.0
+            # Calculate area in hectares (reproject to UTM for accurate area)
+            try:
+                gdf_utm = gdf.to_crs("EPSG:32735")  # UTM zone 35S for Zambia
+                gdf["area_hectares"] = gdf_utm.geometry.area / 10000.0
+            except Exception:
+                gdf["area_hectares"] = gdf.geometry.area / 10000.0
 
             # Ensure standard attribute columns exist with defaults
             if "parcel_number" not in gdf.columns:
