@@ -10,3 +10,6 @@ maxUploadSize = 200
 
 [browser]
 gatherUsageStats = false
+
+[runner]
+installPipPackages = true
