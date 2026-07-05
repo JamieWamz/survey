@@ -10,4 +10,4 @@ python-dotenv==1.0.0
 streamlit-option-menu==0.3.6
 plotly==5.17.0
 fiona==1.9.5
-pyproj==3.6.0ng extra
+pyproj==3.6.0
