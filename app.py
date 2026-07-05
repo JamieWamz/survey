@@ -26,6 +26,16 @@ from streamlit_folium import st_folium
 from streamlit_option_menu import option_menu
 
 # ---------------------------------------------------------------------------
+# PAGE CONFIG - MUST BE FIRST STREAMLIT COMMAND
+# ---------------------------------------------------------------------------
+st.set_page_config(
+    page_title="Yengwe Ward Cadastre System",
+    page_icon="",
+    layout="wide",
+    initial_sidebar_state="expanded",
+)
+
+# ---------------------------------------------------------------------------
 # Constants
 # ---------------------------------------------------------------------------
 
@@ -305,47 +315,6 @@ def create_map(gdf: gpd.GeoDataFrame) -> folium.Map:
     zoom = get_optimal_zoom(gdf)
 
     m = folium.Map(location=list(center), zoom_start=zoom, tiles="OpenStreetMap")
-
-    # Add fullscreen control
-    try:
-        from branca.element import MacroElement
-        from jinja2 import Template
-
-        fullscreen_script = """
-        <script>
-        function toggleFullscreen() {
-            var map = document.querySelector('.folium-map');
-            if (!document.fullscreenElement) {
-                if (map.requestFullscreen) {
-                    map.requestFullscreen();
-                } else if (map.webkitRequestFullscreen) {
-                    map.webkitRequestFullscreen();
-                } else if (map.msRequestFullscreen) {
-                    map.msRequestFullscreen();
-                }
-            } else {
-                if (document.exitFullscreen) {
-                    document.exitFullscreen();
-                } else if (document.webkitExitFullscreen) {
-                    document.webkitExitFullscreen();
-                } else if (document.msExitFullscreen) {
-                    document.msExitFullscreen();
-                }
-            }
-        }
-        </script>
-        <div style="position: absolute; top: 10px; right: 10px; z-index: 1000;">
-            <button onclick="toggleFullscreen()"
-                    style="background: white; border: 2px solid rgba(0,0,0,0.2);
-                           border-radius: 4px; padding: 6px 10px; cursor: pointer;
-                           font-size: 14px; font-weight: bold;">
-                &#x26F6;
-            </button>
-        </div>
-        """
-        m.get_root().html.add_child(folium.Element(fullscreen_script))
-    except Exception:
-        pass
 
     # Determine which fields are available for tooltips
     tooltip_fields = ["parcel_number", "LOT_NAME", "owner_name", "land_use", "status"]
@@ -954,12 +923,6 @@ def export_page(gdf: gpd.GeoDataFrame) -> None:
 
 def main() -> None:
     """Main entry point for the Streamlit application."""
-    st.set_page_config(
-        page_title="Yengwe Ward Cadastre System",
-        page_icon="globe",
-        layout="wide",
-        initial_sidebar_state="expanded",
-    )
 
     # Initialize database on first run
     if "db_initialized" not in st.session_state:
@@ -1045,11 +1008,11 @@ def main() -> None:
         load_error = f"Shapefile directory not found: {shp_dir}"
 
     # Show loading errors/warnings
-    if load_error:
-        if parcels_gdf is None:
-            st.error(load_error)
-        else:
-            st.warning(load_error)
+    if load_error and parcels_gdf is None:
+        st.error(load_error)
+        st.stop()
+    elif load_error:
+        st.warning(load_error)
 
     # If no data loaded, show a helpful message
     if parcels_gdf is None or parcels_gdf.empty:

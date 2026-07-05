@@ -1,16 +1,35 @@
 # Python
 __pycache__/
 *.py[cod]
-*.egg-info/
-dist/
-build/
-*.egg
-.venv/
-venv/
+*$py.class
+*.so
+.Python
 env/
+venv/
+ENV/
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+
+# Database
+*.db
+*.sqlite
+*.sqlite3
 
 # Streamlit
-*.db
+.streamlit/secrets.toml
 
 # IDE
 .vscode/
@@ -22,11 +41,14 @@ env/
 .DS_Store
 Thumbs.db
 
-# Project specific
-*.kml
-*.kmz
-*.geojson
-*.csv
+# Logs
+logs/
+*.log
 
-# Skills config (local only)
+# Temporary files
+tmp/
+temp/
+*.tmp
+
+# Cline
 .cline-skills.md
