@@ -86,7 +86,8 @@ def init_database() -> None:
             if existing is None:
                 pw_hash = hashlib.sha256(password.encode("utf-8")).hexdigest()
                 conn.execute(
-                    "INSERT INTO users (username, password_hash, role) VALUES (?, ?, ?)",
+                    "INSERT INTO users (username, password_hash, role) "
+                    "VALUES (?, ?, ?)",
                     (username, pw_hash, role),
                 )
         conn.commit()
@@ -100,7 +101,8 @@ def authenticate_user(username: str, password: str) -> Optional[Dict[str, Any]]:
     conn = get_db_connection()
     try:
         row = conn.execute(
-            "SELECT id, username, role FROM users WHERE username = ? AND password_hash = ?",
+            "SELECT id, username, role FROM users "
+            "WHERE username = ? AND password_hash = ?",
             (username, pw_hash),
         ).fetchone()
         if row:
@@ -116,7 +118,9 @@ def authenticate_user(username: str, password: str) -> Optional[Dict[str, Any]]:
 
 
 @st.cache_data(ttl=3600, show_spinner="Loading shapefiles...")
-def load_shapefiles(base_path: Path) -> Tuple[Optional[gpd.GeoDataFrame], List[str], Optional[str]]:
+def load_shapefiles(
+    base_path: Path,
+) -> Tuple[Optional[gpd.GeoDataFrame], List[str], Optional[str]]:
     """
     Load all shapefiles from subdirectories under base_path.
     Returns (combined_gdf, lot_names_list, error_message).
@@ -301,7 +305,9 @@ def create_map(gdf: gpd.GeoDataFrame) -> folium.Map:
             labels=True,
             sticky=True,
         ),
-        highlight_function=lambda x: {"weight": 2, "color": "#2a5298", "fillOpacity": 0.8},
+        highlight_function=lambda x: {
+            "weight": 2, "color": "#2a5298", "fillOpacity": 0.8
+        },
     )
     geo_json.add_to(m)
 
@@ -623,13 +629,17 @@ def search_page(gdf: gpd.GeoDataFrame) -> None:
 
         if search_parcel:
             result = result[
-                result["parcel_number"].str.contains(search_parcel, case=False, na=False)
+                result["parcel_number"].str.contains(
+                    search_parcel, case=False, na=False
+                )
             ]
 
         if search_owner:
             if "owner_name" in result.columns:
                 result = result[
-                    result["owner_name"].str.contains(search_owner, case=False, na=False)
+                    result["owner_name"].str.contains(
+                        search_owner, case=False, na=False
+                    )
                 ]
 
         if search_lot != "All" and "LOT_NAME" in result.columns:
@@ -869,7 +879,9 @@ def main() -> None:
             st.markdown("### Login")
             with st.form("login_form"):
                 username = st.text_input("Username", placeholder="Enter username")
-                password = st.text_input("Password", type="password", placeholder="Enter password")
+                password = st.text_input(
+                    "Password", type="password", placeholder="Enter password"
+                )
                 submitted = st.form_submit_button("Login", use_container_width=True)
                 if submitted:
                     if username.strip() and password:
@@ -939,3 +951,4 @@ def main() -> None:
 
 if __name__ == "__main__":
     main()
+
