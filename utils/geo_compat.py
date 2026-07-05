@@ -1,141 +1,120 @@
 from pathlib import Path
 import json
-from typing import Any, Iterable, List
+from typing import Any, List
 
 import pandas as pd
-from shapely.geometry import shape, mapping
 import shapefile
+from shapely.geometry import mapping, shape
 
 
 class GeometryAccessor:
     def __init__(self, series: pd.Series):
-        self._s = series
+        self._series = series
 
     @property
     def area(self) -> pd.Series:
-        return self._s.apply(lambda g: g.area if g is not None else 0)
+        return self._series.apply(lambda geom: geom.area if geom is not None else 0)
 
     def notnull(self) -> pd.Series:
-        return self._s.notnull()
+        return self._series.notnull()
 
     def intersects(self, other) -> pd.Series:
-        return self._s.apply(lambda g: g.intersects(other) if g is not None else False)
+        return self._series.apply(lambda geom: geom.intersects(other) if geom is not None else False)
+
+    def __getattr__(self, item: str):
+        return getattr(self._series, item)
+
+    def __iter__(self):
+        return iter(self._series)
+
+    def __len__(self) -> int:
+        return len(self._series)
 
 
-class GeoDataFrame:
-    def __init__(self, data: Any = None, geometry: str = 'geometry', crs: str | None = None):
-        self._df = pd.DataFrame(data)
+class GeoDataFrame(pd.DataFrame):
+    _metadata = ['crs', '_geom_col']
+
+    def __init__(self, data: Any = None, geometry: str = 'geometry', crs: str | None = None, *args, **kwargs):
+        super().__init__(data, *args, **kwargs)
         self._geom_col = geometry
         self.crs = crs
 
     @property
+    def _constructor(self):
+        return GeoDataFrame
+
+    @property
     def geometry(self) -> GeometryAccessor:
-        return GeometryAccessor(self._df[self._geom_col])
-
-    @property
-    def columns(self):
-        return self._df.columns
-
-    @property
-    def empty(self):
-        return self._df.empty
-
-    def __getitem__(self, key):
-        return self._df[key]
-
-    def __setitem__(self, key, value):
-        self._df[key] = value
-
-    def __len__(self):
-        return len(self._df)
-
-    def iterrows(self):
-        return self._df.iterrows()
-
-    def copy(self):
-        return GeoDataFrame(self._df.copy(), geometry=self._geom_col, crs=self.crs)
+        if self._geom_col in self.columns:
+            return GeometryAccessor(self[self._geom_col])
+        return GeometryAccessor(pd.Series([None] * len(self), index=self.index))
 
     def set_crs(self, crs: str):
         self.crs = crs
         return self
 
     def to_crs(self, crs: str):
-        # no-op for simple compatibility shim
         self.crs = crs
         return self
 
     def to_json(self) -> str:
         features = []
-        for _, row in self._df.iterrows():
+        for _, row in self.iterrows():
             geom = row.get(self._geom_col)
-            props = {k: v for k, v in row.items() if k != self._geom_col}
-            feature = {
+            props = {key: value for key, value in row.items() if key != self._geom_col}
+            features.append({
                 'type': 'Feature',
                 'geometry': mapping(geom) if geom is not None else None,
                 'properties': props,
-            }
-            features.append(feature)
+            })
         return json.dumps({'type': 'FeatureCollection', 'features': features})
 
     def to_file(self, path: Path | str, driver: str = 'GeoJSON'):
         p = Path(path)
-        if driver == 'GeoJSON':
+        if str(driver).lower() == 'geojson':
             p.parent.mkdir(parents=True, exist_ok=True)
-            with open(p, 'w', encoding='utf-8') as fp:
-                fp.write(self.to_json())
+            p.write_text(self.to_json(), encoding='utf-8')
             return
-        # ESRI Shapefile fallback: write GeoJSON instead (Streamlit: client can consume geojson)
-        if driver.upper().startswith('ESRI'):
-            geojson_path = p.with_suffix('.geojson')
-            self.to_file(geojson_path, driver='GeoJSON')
+        if str(driver).upper().startswith('ESRI'):
+            self.to_file(p.with_suffix('.geojson'), driver='GeoJSON')
             return
-        # default: write GeoJSON
         self.to_file(p.with_suffix('.geojson'), driver='GeoJSON')
 
     @property
     def total_bounds(self) -> List[float]:
-        if self._df.empty:
-            return [0, 0, 0, 0]
-        xs = []
-        ys = []
+        if self.empty:
+            return [0.0, 0.0, 0.0, 0.0]
         minx = miny = float('inf')
         maxx = maxy = float('-inf')
-        for geom in self._df[self._geom_col]:
+        for geom in self[self._geom_col] if self._geom_col in self.columns else []:
             if geom is None:
                 continue
-            b = geom.bounds
-            minx = min(minx, b[0])
-            miny = min(miny, b[1])
-            maxx = max(maxx, b[2])
-            maxy = max(maxy, b[3])
+            bounds = geom.bounds
+            minx = min(minx, bounds[0])
+            miny = min(miny, bounds[1])
+            maxx = max(maxx, bounds[2])
+            maxy = max(maxy, bounds[3])
         if minx == float('inf'):
-            return [0, 0, 0, 0]
+            return [0.0, 0.0, 0.0, 0.0]
         return [minx, miny, maxx, maxy]
-
-    def __getattr__(self, item):
-        # delegate DataFrame methods where reasonable
-        return getattr(self._df, item)
 
 
 def read_file(path: Path | str) -> GeoDataFrame:
-    r = shapefile.Reader(str(path))
-    fields = r.fields[1:]
-    field_names = [f[0] for f in fields]
+    reader = shapefile.Reader(str(path))
+    field_names = [field[0] for field in reader.fields[1:]]
     records = []
-    for sr in r.iterShapeRecords():
-        rec = {name: val for name, val in zip(field_names, sr.record)}
-        geom = shape(sr.shape.__geo_interface__)
-        rec['geometry'] = geom
-        records.append(rec)
+    for shape_record in reader.iterShapeRecords():
+        record = {name: value for name, value in zip(field_names, shape_record.record)}
+        record['geometry'] = shape(shape_record.shape.__geo_interface__)
+        records.append(record)
     return GeoDataFrame(records, geometry='geometry', crs='EPSG:4326')
 
 
-# Expose a module-level name `gpd` for minimal compatibility with imports
 class _GPDShim:
     GeoDataFrame = GeoDataFrame
 
     @staticmethod
-    def read_file(path):
+    def read_file(path: Path | str) -> GeoDataFrame:
         return read_file(path)
 
 
