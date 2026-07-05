@@ -1,11 +1,12 @@
-[server]
-headless = true
-enableCORS = false
-port = 8501
-
 [theme]
-primaryColor = '#003366'
-backgroundColor = '#f0f2f6'
-secondaryBackgroundColor = '#ffffff'
-textColor = '#0e1117'
-font = 'sans serif'
+primaryColor = "#2a5298"
+backgroundColor = "#f5f7fb"
+secondaryBackgroundColor = "#ffffff"
+textColor = "#1e3c72"
+font = "sans serif"
+
+[server]
+maxUploadSize = 200
+
+[browser]
+gatherUsageStats = false
