@@ -15,14 +15,11 @@ from typing import Any, Dict, List, Optional, Tuple
 
 import folium
 import geopandas as gpd
-import numpy as np
 import pandas as pd
 import plotly.express as px
-import plotly.graph_objects as go
 import streamlit as st
 import simplekml
 from folium.features import GeoJson
-from shapely.geometry import mapping, shape
 from streamlit_option_menu import option_menu
 from streamlit_folium import st_folium
 
@@ -427,8 +424,8 @@ def export_to_csv(gdf: gpd.GeoDataFrame) -> bytes:
 
 def dashboard_page(gdf: gpd.GeoDataFrame) -> None:
     """Render the Dashboard page with statistics and charts."""
-    st.title("📊 Dashboard")
-    st.markdown("### Yengwe Ward Cadastre — Overview")
+    st.title("Dashboard")
+    st.markdown("### Yengwe Ward Cadastre -- Overview")
 
     if gdf is None or gdf.empty:
         st.warning("No parcel data available. Please check the shapefile directory.")
@@ -530,7 +527,7 @@ def dashboard_page(gdf: gpd.GeoDataFrame) -> None:
 
 def map_page(gdf: gpd.GeoDataFrame) -> None:
     """Render the Map Viewer page with an interactive Folium map."""
-    st.title("🗺️ Map Viewer")
+    st.title("Map Viewer")
     st.markdown("### Interactive Parcel Map")
 
     if gdf is None or gdf.empty:
@@ -563,7 +560,7 @@ def map_page(gdf: gpd.GeoDataFrame) -> None:
     st_folium(m, width=None, height=600, returned_objects=[])
 
     # Show data table below map
-    with st.expander("📋 View Parcel Data Table"):
+    with st.expander("View Parcel Data Table"):
         display_cols = [
             c
             for c in [
@@ -588,7 +585,7 @@ def map_page(gdf: gpd.GeoDataFrame) -> None:
 
 def search_page(gdf: gpd.GeoDataFrame) -> None:
     """Render the Search page with multi-field search capabilities."""
-    st.title("🔍 Search Parcels")
+    st.title("Search Parcels")
     st.markdown("### Find parcels by various criteria")
 
     if gdf is None or gdf.empty:
@@ -618,7 +615,7 @@ def search_page(gdf: gpd.GeoDataFrame) -> None:
     else:
         search_status = "All"
 
-    search_clicked = st.button("🔍 Search", type="primary")
+    search_clicked = st.button("Search", type="primary")
 
     if search_clicked:
         # Apply filters
@@ -683,7 +680,7 @@ def search_page(gdf: gpd.GeoDataFrame) -> None:
             with export_col1:
                 kml_bytes = export_to_kml(result, "search_results")
                 st.download_button(
-                    "📥 Download KML",
+                    "Download KML",
                     data=kml_bytes,
                     file_name="search_results.kml",
                     mime="application/vnd.google-earth.kml+xml",
@@ -691,7 +688,7 @@ def search_page(gdf: gpd.GeoDataFrame) -> None:
             with export_col2:
                 kmz_bytes = export_to_kmz(result, "search_results")
                 st.download_button(
-                    "📥 Download KMZ",
+                    "Download KMZ",
                     data=kmz_bytes,
                     file_name="search_results.kmz",
                     mime="application/vnd.google-earth.kmz",
@@ -699,7 +696,7 @@ def search_page(gdf: gpd.GeoDataFrame) -> None:
             with export_col3:
                 geojson_bytes = export_to_geojson(result)
                 st.download_button(
-                    "📥 Download GeoJSON",
+                    "Download GeoJSON",
                     data=geojson_bytes,
                     file_name="search_results.geojson",
                     mime="application/geo+json",
@@ -707,7 +704,7 @@ def search_page(gdf: gpd.GeoDataFrame) -> None:
             with export_col4:
                 csv_bytes = export_to_csv(result)
                 st.download_button(
-                    "📥 Download CSV",
+                    "Download CSV",
                     data=csv_bytes,
                     file_name="search_results.csv",
                     mime="text/csv",
@@ -720,7 +717,7 @@ def search_page(gdf: gpd.GeoDataFrame) -> None:
 
 def export_page(gdf: gpd.GeoDataFrame) -> None:
     """Render the Export page with options to download data in various formats."""
-    st.title("📤 Export Data")
+    st.title("Export Data")
     st.markdown("### Download parcel data in your preferred format")
 
     if gdf is None or gdf.empty:
@@ -757,7 +754,7 @@ def export_page(gdf: gpd.GeoDataFrame) -> None:
                 try:
                     kml_bytes = export_to_kml(export_gdf, "yengwe_parcels")
                     st.download_button(
-                        "📥 Download KML",
+                        "Download KML",
                         data=kml_bytes,
                         file_name="yengwe_parcels.kml",
                         mime="application/vnd.google-earth.kml+xml",
@@ -774,7 +771,7 @@ def export_page(gdf: gpd.GeoDataFrame) -> None:
                 try:
                     kmz_bytes = export_to_kmz(export_gdf, "yengwe_parcels")
                     st.download_button(
-                        "📥 Download KMZ",
+                        "Download KMZ",
                         data=kmz_bytes,
                         file_name="yengwe_parcels.kmz",
                         mime="application/vnd.google-earth.kmz",
@@ -791,7 +788,7 @@ def export_page(gdf: gpd.GeoDataFrame) -> None:
                 try:
                     geojson_bytes = export_to_geojson(export_gdf)
                     st.download_button(
-                        "📥 Download GeoJSON",
+                        "Download GeoJSON",
                         data=geojson_bytes,
                         file_name="yengwe_parcels.geojson",
                         mime="application/geo+json",
@@ -808,7 +805,7 @@ def export_page(gdf: gpd.GeoDataFrame) -> None:
                 try:
                     csv_bytes = export_to_csv(export_gdf)
                     st.download_button(
-                        "📥 Download CSV",
+                        "Download CSV",
                         data=csv_bytes,
                         file_name="yengwe_parcels.csv",
                         mime="text/csv",
@@ -827,7 +824,7 @@ def main() -> None:
     """Main entry point for the Streamlit application."""
     st.set_page_config(
         page_title="Yengwe Ward Cadastre System",
-        page_icon="🗺️",
+        page_icon="globe",
         layout="wide",
         initial_sidebar_state="expanded",
     )
@@ -850,7 +847,7 @@ def main() -> None:
         st.markdown(
             """
             <div style="text-align: center; padding: 10px 0;">
-                <h2 style="color: #2a5298; margin: 0;">🗺️ Yengwe</h2>
+                <h2 style="color: #2a5298; margin: 0;">Yengwe</h2>
                 <h3 style="color: #4a7cbd; margin: 0;">Cadastre</h3>
             </div>
             """,
@@ -864,7 +861,7 @@ def main() -> None:
             user = st.session_state.user
             st.markdown(f"**Logged in:** {user['username']}")
             st.markdown(f"**Role:** `{user['role']}`")
-            if st.button("🚪 Logout", use_container_width=True):
+            if st.button("Logout", use_container_width=True):
                 st.session_state.user = None
                 st.session_state.search_results = None
                 st.rerun()
@@ -873,7 +870,7 @@ def main() -> None:
             with st.form("login_form"):
                 username = st.text_input("Username", placeholder="Enter username")
                 password = st.text_input("Password", type="password", placeholder="Enter password")
-                submitted = st.form_submit_button("🔑 Login", use_container_width=True)
+                submitted = st.form_submit_button("Login", use_container_width=True)
                 if submitted:
                     if username.strip() and password:
                         user = authenticate_user(username.strip(), password)
@@ -905,20 +902,19 @@ def main() -> None:
     shp_dir = BASE_DIR / "Yengwe SHP"
 
     parcels_gdf = None
-    lot_names = []
     load_error = None
 
     if shp_dir.exists():
-        parcels_gdf, lot_names, load_error = load_shapefiles(shp_dir)
+        parcels_gdf, _lot_names, load_error = load_shapefiles(shp_dir)
     else:
         load_error = f"Shapefile directory not found: {shp_dir}"
 
     # Show loading errors/warnings
     if load_error:
         if parcels_gdf is None:
-            st.error(f"⚠️ {load_error}")
+            st.error(load_error)
         else:
-            st.warning(f"⚠️ {load_error}")
+            st.warning(load_error)
 
     # If no data loaded, show a helpful message
     if parcels_gdf is None or parcels_gdf.empty:
