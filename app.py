@@ -22,17 +22,18 @@ import pandas as pd
 import plotly.express as px
 import simplekml
 import streamlit as st
-import geopandas as gpd
-gpd.options.io_engine = "pyogrio"
 from streamlit_folium import st_folium
 from streamlit_option_menu import option_menu
+
+# --- Prevent pyogrio segfault: use fiona engine explicitly ---
+gpd.options.io_engine = "fiona"  # type: ignore[attr-defined]
 
 # ---------------------------------------------------------------------------
 # PAGE CONFIG - MUST BE FIRST STREAMLIT COMMAND
 # ---------------------------------------------------------------------------
 st.set_page_config(
     page_title="Yengwe Ward Cadastre System",
-    page_icon="",
+    page_icon=None,
     layout="wide",
     initial_sidebar_state="expanded",
 )
@@ -270,7 +271,7 @@ def load_shapefiles(
 # ---------------------------------------------------------------------------
 
 
-def get_center(gdf: gpd.GeoDataFrame) -> Tuple[float, float]:
+def get_center(gdf: Optional[gpd.GeoDataFrame]) -> Tuple[float, float]:
     """Calculate the map center from a GeoDataFrame's total bounds."""
     if gdf is None or gdf.empty:
         return ZAMBIA_CENTER
@@ -281,7 +282,7 @@ def get_center(gdf: gpd.GeoDataFrame) -> Tuple[float, float]:
         return ZAMBIA_CENTER
 
 
-def get_optimal_zoom(gdf: gpd.GeoDataFrame) -> int:
+def get_optimal_zoom(gdf: Optional[gpd.GeoDataFrame]) -> int:
     """Calculate an appropriate zoom level based on the data extent."""
     if gdf is None or gdf.empty:
         return DEFAULT_ZOOM
@@ -492,7 +493,7 @@ def export_to_csv(gdf: gpd.GeoDataFrame) -> bytes:
 # ---------------------------------------------------------------------------
 
 
-def dashboard_page(gdf: gpd.GeoDataFrame) -> None:
+def dashboard_page(gdf: Optional[gpd.GeoDataFrame]) -> None:
     """Render the Dashboard page with statistics and charts."""
     st.title("Dashboard")
     st.markdown("### Yengwe Ward Cadastre -- Overview")
@@ -595,7 +596,7 @@ def dashboard_page(gdf: gpd.GeoDataFrame) -> None:
         st.plotly_chart(fig, use_container_width=True)
 
 
-def map_page(gdf: gpd.GeoDataFrame) -> None:
+def map_page(gdf: Optional[gpd.GeoDataFrame]) -> None:
     """Render the Map Viewer page with an interactive Folium map."""
     st.title("Map Viewer")
     st.markdown("### Interactive Parcel Map")
@@ -653,7 +654,7 @@ def map_page(gdf: gpd.GeoDataFrame) -> None:
                 st.caption(f"Showing first 100 of {len(filtered_gdf):,} records")
 
 
-def search_page(gdf: gpd.GeoDataFrame) -> None:
+def search_page(gdf: Optional[gpd.GeoDataFrame]) -> None:
     """Render the Search page with multi-field search capabilities."""
     st.title("Search Parcels")
     st.markdown("### Find parcels by various criteria")
@@ -818,7 +819,7 @@ def search_page(gdf: gpd.GeoDataFrame) -> None:
         st.info("Enter search criteria and click 'Search' to find parcels.")
 
 
-def export_page(gdf: gpd.GeoDataFrame) -> None:
+def export_page(gdf: Optional[gpd.GeoDataFrame]) -> None:
     """Render the Export page with options to download data in various formats."""
     st.title("Export Data")
     st.markdown("### Download parcel data in your preferred format")
